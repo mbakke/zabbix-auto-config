@@ -380,6 +380,7 @@ class ZabbixUpdater(BaseProcess):
         except pyzabbix.ZabbixAPIException as e:
             logging.error("Unable to login to Zabbix API: %s", str(e))
             raise e
+        logging.info("Connected to Zabbix API version %s", self.api.api_version())
 
         self.property_template_map = utils.read_map_file(os.path.join(self.map_dir, "property_template_map.txt"))
         self.property_hostgroup_map = utils.read_map_file(os.path.join(self.map_dir, "property_hostgroup_map.txt"))
@@ -467,6 +468,13 @@ class ZabbixHostUpdater(ZabbixUpdater):
             else:
                 parameters["dns"] = interface["endpoint"]
                 parameters["ip"] = ""
+
+            # The details parameter is required for SNMP interfaces since version 5.
+            if interface["type"] == 2 and int(self.api.api_version().split(".")[0]) >= 5:
+                parameters["details"] = {
+                    "version": 2,
+                    "community": "{$SNMP_COMMUNITY}",
+                }
 
             if old_id:
                 self.api.hostinterface.update(interfaceid=old_id, **parameters)
