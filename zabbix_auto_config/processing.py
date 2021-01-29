@@ -618,14 +618,13 @@ class ZabbixHostUpdater(ZabbixUpdater):
                         if interface["type"] == 2:
                             # Check that the interface details are correct.  Note
                             # that responses from the Zabbix API are quoted, so we
-                            # need to convert our natively typed values.
+                            # need to convert our natively typed values to strings.
+                            # Note that the Zabbix API response may include more
+                            # information than our back-end; ignore those.
                             # TODO: this is terrible and should be implemented
                             # using dataclasses for the interface and host types.
-                            zd = zabbix_interface["details"]
-                            cd = interface["details"]
-                            zv = set(zd.values())
-                            cv = set([str(v) for v in cd.values()])
-                            if zv != cv or set(zd.keys()) != set(cd.keys()):
+                            if not all(zabbix_interface["details"].get(k, None) ==
+                                       str(v) for k,v in interface["details"].items()):
                                 # This SNMP interface is configured wrong, set it.
                                 self.set_interface(zabbix_host, interface, useip, zabbix_interface["interfaceid"])
                     else:
